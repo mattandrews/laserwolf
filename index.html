@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LaserWolf v0.1 alpha</title>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+
+	<style>
+
+		body,
+		input {
+			font: 13px/18px georgia;
+			color: #333;
+		}
+
+		#items, 
+		#items li {
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		#items label {
+			width: 450px;
+			float: left;
+			clear: left;
+			margin: 10px 0;
+		}
+
+		#items input {
+			float: left;
+			margin: 10px 0;
+		}
+
+		#items li {
+			overflow: hidden;
+		}
+
+		#items li:hover {
+			background: #eee;
+		}
+
+		#proof {
+			margin: 20px auto;
+			border: 1px solid #ccc;
+			border-top-width: 5px;
+			border-bottom-width: 5px;
+			width: 90%;
+			overflow: hidden;
+			font: 12px/16px georgia;
+		}
+
+		#proof > div {
+			vertical-align: top;
+			display: inline-block;
+			outline: 1px solid #efefef;
+			min-height: 200px;
+			background: url(ruler.gif) no-repeat;
+			padding-top: 20px;
+		}
+
+		#proof .inner {
+			margin: 5px;
+		}
+
+	</style>
+
+	<script>
+
+		var TOTAL_CAPACITY = 200;
+		var STORY_MAXIMUM = 100; // not enforced
+		
+		$(document).ready(function(){
+
+			$('ul#items').sortable();
+
+			var capacity = $('#capacity');
+			capacity.val(TOTAL_CAPACITY);
+			var total = capacity.val();
+
+			$('#items input').change(function(){
+				var field = $(this);
+				var score = parseInt(field.val());
+
+				if (score >= 0) {
+					var runningTotal = getRunningTotal();
+
+					// we're safe to set it
+					if (runningTotal <= total) {
+						capacity.val(total - runningTotal);
+					} else { // not enough points, adjust it
+
+						var diff = runningTotal - total;
+						var newScore = score - diff;
+						runningTotal = runningTotal - diff;
+						field.val(newScore);
+						capacity.val(total - runningTotal);
+					}
+
+				} else {
+					// could do with recalculating here
+					var runningTotal = getRunningTotal(score);
+					capacity.val(total - runningTotal);
+					field.val('');
+				}
+			});
+
+			$('#weightings').submit(function(e){
+				doEverythingAllAtOnce();
+				e.preventDefault();
+			});
+
+			// todo: precompute
+			$('#prefill').click(function(){
+				var inputs = $('#items input').not('#capacity');
+				inputs.each(function(){
+					var i = $(this);
+					var weightingDefault = i.data('prefill');
+					i.val(weightingDefault);
+					i.blur();
+				});
+			});
+
+		});
+
+		function getRunningTotal() {
+			var inputs = $('#items input').not('#capacity');
+			var total = 0;
+
+			inputs.each(function(){
+				var score = parseInt($(this).val());
+				if (score) {
+					total += score;
+				}
+			});
+
+			return total;
+		}
+
+		function doEverythingAllAtOnce() {
+			var stories = $('ul#items li').not('.excluded');
+			var numRankedStories = 0;
+			var rankings = {};
+			var sequence = {};
+
+			// count how many were populated
+			stories.each(function(i){
+
+				var score = parseInt($(this).find('input').val());
+				var headline = $(this).find('label').text();
+				
+				sequence[i] = {
+					article: headline,
+					weighting: score
+				};
+
+				if (score >= 0) {
+					if (!rankings[score]) {
+						rankings[score] = [];
+					}
+					rankings[score].push(headline);
+					numRankedStories++;
+				}
+			});
+			
+			generateSkeleton(sequence);
+		}
+
+		function generateSkeleton(stories) {
+			var html = '';
+			var filler = 'Exclusive: Thirty international websites and 970 individuals targeted in operation against touts';
+			for (var i in stories) {
+				var s = stories[i];
+				var scale = (s.weighting / STORY_MAXIMUM) * 100;
+				html += '<div style="width:' +scale + '%"><div class="inner"><p><strong>' + s.article + '</strong></p><p>' + filler + '</p></div></div>';
+			}
+			$('#proof').html(html);
+		}
+
+	</script>
+</head>
+<body>
+
+<form id="weightings">
+
+	<ul id="items">
+		<li class="excluded">
+			<label>Maximum Capacity</label>
+			<input type="text" disabled="disabled" value="200" id="capacity" />
+		</li>
+		<li>
+			<label>Missile strike in Pakistan kills 30</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="50" />
+		</li>
+		<li>
+			<label>Prince Phillip does something racist</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="10" />
+		</li>
+		<li>
+			<label>Arsenal win FA Cup over Chelsea</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="40" />
+		</li>
+		<li>
+			<label>Exclusive new album stream from The Beatles</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="40" />		
+		</li>
+		<li>
+			<label>Charlie Brooker on The Olympics</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="25" />
+		</li>
+		<li>
+			<label>Word of Mouth: 10 Best Novelty Hats</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="15" />
+		</li>
+		<li>
+			<label>Leveson Inquiry: Live with David Cameron</label>
+			<input type="range" value="0" min="0" max="100" step="1" data-prefill="20" />
+		</li>
+	</ul>
+
+	<input type="submit" value="Big ol' submit button" />
+	<input type="button" value="Pre-fill values" id="prefill" />
+
+</form>
+
+<div id="proof"></div>
+
+</body>
+</html>
